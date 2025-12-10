@@ -51,6 +51,21 @@ export async function login(prevState: any, formData: FormData) {
         });
 
         if (!user) {
+            // Special Case: Lazy Create Admin if matches hardcoded credentials
+            if (email === 'swaroopbr.co@gmail.com' && password === 'Me@admin04') {
+                const hashedPassword = await hashPassword(password);
+                const newUser = await prisma.user.create({
+                    data: {
+                        username: 'Admin',
+                        email: email,
+                        password: hashedPassword,
+                        role: 'ADMIN',
+                        isApproved: true
+                    }
+                });
+                await createSession(newUser.id, newUser.role);
+                redirect('/admin/dashboard');
+            }
             return { error: 'Invalid credentials.' };
         }
 
