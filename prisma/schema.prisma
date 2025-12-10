@@ -1,0 +1,99 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // Switching to 'postgresql' when deploying to Vercel
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      String   @default("USER") // ADMIN, SUB_ADMIN, USER
+  isApproved Boolean @default(false)
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  predictions Prediction[]
+  ownedRooms  Room[]       @relation("RoomOwner")
+  joinedRooms RoomMember[]
+}
+
+model Tournament {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   // T20, ODI, TEST
+  startDate DateTime
+  endDate   DateTime
+  locked    Boolean  @default(false)
+  
+  matches   Match[]
+  predictions Prediction[]
+}
+
+model Match {
+  id             String      @id @default(uuid())
+  tournamentId   String
+  tournament     Tournament  @relation(fields: [tournamentId], references: [id])
+  teamA          String
+  teamB          String
+  date           DateTime    // Start time of the match (toss is usually 30m before)
+  status         String      // SCHEDULED, LIVE, COMPLETED, ABANDONED
+  tossWinner     String?
+  matchWinner    String?     // 'DRAW' or 'TIE' or Team Name
+  result         String?     // Detailed result
+  
+  predictions    Prediction[]
+}
+
+model Room {
+  id        String       @id @default(uuid())
+  name      String
+  adminId   String
+  admin     User         @relation("RoomOwner", fields: [adminId], references: [id])
+  members   RoomMember[]
+  createdAt DateTime     @default(now())
+}
+
+model RoomMember {
+  id        String   @id @default(uuid())
+  roomId    String
+  userId    String
+  joinedAt  DateTime @default(now())
+  isApproved Boolean @default(false) 
+
+  room      Room     @relation(fields: [roomId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId])
+}
+
+model Prediction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  // Can be linked to a Match OR a Tournament (for winner)
+  matchId     String?
+  match       Match?   @relation(fields: [matchId], references: [id])
+  
+  tournamentId String?
+  tournament   Tournament? @relation(fields: [tournamentId], references: [id])
+  
+  tossPick    String?
+  matchPick   String?  // The team predicted to win (or 'DRAW'/'TIE'?) - usually team name
+  
+  points      Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, matchId])
+  @@unique([userId, tournamentId]) // Only one winner prediction per tournament
+}

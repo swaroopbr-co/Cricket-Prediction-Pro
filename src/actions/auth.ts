@@ -1,0 +1,74 @@
+'use server';
+
+import { prisma } from '@/lib/prisma';
+import { hashPassword, verifyPassword } from '@/lib/auth';
+import { createSession } from '@/lib/session';
+import { redirect } from 'next/navigation';
+
+export async function signup(prevState: any, formData: FormData) {
+    const username = formData.get('username') as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    if (!username || !email || !password) {
+        return { error: 'All fields are required.' };
+    }
+
+    const existingUser = await prisma.user.findFirst({
+        where: { OR: [{ email }, { username }] },
+    });
+
+    if (existingUser) {
+        return { error: 'Username or Email already exists.' };
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    // Check if this is the first user (make them admin if so - safety net)
+    const userCount = await prisma.user.count();
+    const isAdmin = userCount === 0 || email === 'swaroopbr.co@gmail.com';
+
+    await prisma.user.create({
+        data: {
+            username,
+            email,
+            password: hashedPassword,
+            role: isAdmin ? 'ADMIN' : 'USER',
+            isApproved: isAdmin, // First user/Admin is auto-approved
+        },
+    });
+
+    redirect('/login?message=Account created. Please login.');
+}
+
+export async function login(prevState: any, formData: FormData) {
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        if (!user) {
+            return { error: 'Invalid credentials.' };
+        }
+
+        const isValid = await verifyPassword(password, user.password);
+
+        if (!isValid) {
+            return { error: 'Invalid credentials.' };
+        }
+
+        if (!user.isApproved) {
+            return { error: 'Your account is pending Admin approval.' };
+        }
+
+        await createSession(user.id, user.role);
+
+    } catch (e) {
+        return { error: 'Authentication failed' };
+    }
+
+    redirect('/dashboard');
+}
