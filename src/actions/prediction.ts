@@ -82,10 +82,10 @@ export async function getLeaderboard() {
     });
 
     // Simple aggregate
-    const leaderboard = users.map(u => ({
+    const leaderboard = users.map((u: any) => ({
         username: u.username,
-        totalPoints: u.predictions.reduce((acc, p) => acc + p.points, 0)
-    })).sort((a, b) => b.totalPoints - a.totalPoints);
+        totalPoints: u.predictions.reduce((acc: number, p: any) => acc + p.points, 0)
+    })).sort((a: any, b: any) => b.totalPoints - a.totalPoints);
 
     return leaderboard;
 }
