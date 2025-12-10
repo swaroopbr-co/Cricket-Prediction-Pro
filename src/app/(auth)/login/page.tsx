@@ -67,25 +67,6 @@ function LoginForm() {
                         Sign up
                     </Link>
                 </p>
-
-                <div className="mt-6 border-t border-[var(--glass-border)] pt-4 text-center">
-                    <p className="mb-2 text-xs text-gray-500">Developer Access</p>
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            const form = e.currentTarget.closest('form') || document.querySelector('form');
-                            if (form) {
-                                const emailInput = form.querySelector('input[name="email"]') as HTMLInputElement;
-                                const passInput = form.querySelector('input[name="password"]') as HTMLInputElement;
-                                if (emailInput) emailInput.value = 'swaroopbr.co@gmail.com';
-                                if (passInput) passInput.value = 'Me@admin04';
-                            }
-                        }}
-                        className="text-xs text-[var(--secondary)] underline hover:text-white"
-                    >
-                        Auto-fill Admin Credentials
-                    </button>
-                </div>
             </div>
         </div>
     );

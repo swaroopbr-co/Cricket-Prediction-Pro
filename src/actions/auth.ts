@@ -54,16 +54,29 @@ export async function login(prevState: any, formData: FormData) {
             // Special Case: Lazy Create Admin if matches hardcoded credentials
             if (email === 'swaroopbr.co@gmail.com' && password === 'Me@admin04') {
                 const hashedPassword = await hashPassword(password);
-                const newUser = await prisma.user.create({
-                    data: {
-                        username: 'Admin',
-                        email: email,
-                        password: hashedPassword,
-                        role: 'ADMIN',
-                        isApproved: true
-                    }
-                });
-                await createSession(newUser.id, newUser.role);
+
+                // Ensure username is unique
+                let username = 'Admin';
+                let counter = 1;
+                while (await prisma.user.findUnique({ where: { username } })) {
+                    username = `Admin${counter++}`;
+                }
+
+                try {
+                    const newUser = await prisma.user.create({
+                        data: {
+                            username,
+                            email: email,
+                            password: hashedPassword,
+                            role: 'ADMIN',
+                            isApproved: true
+                        }
+                    });
+                    await createSession(newUser.id, newUser.role);
+                } catch (innerError) {
+                    console.error("Admin Creation Failed:", innerError);
+                    return { error: 'Failed to auto-create admin.' };
+                }
                 redirect('/admin/dashboard');
             }
             return { error: 'Invalid credentials.' };
@@ -72,6 +85,8 @@ export async function login(prevState: any, formData: FormData) {
         const isValid = await verifyPassword(password, user.password);
 
         if (!isValid) {
+            // If it's the admin email but wrong password, maybe we should warn specifically?
+            // For now, keep generic security.
             return { error: 'Invalid credentials.' };
         }
 
@@ -82,7 +97,11 @@ export async function login(prevState: any, formData: FormData) {
         await createSession(user.id, user.role);
 
     } catch (e) {
-        return { error: 'Authentication failed' };
+        console.error("Login Error:", e);
+        if ((e as any)?.message?.includes('NEXT_REDIRECT')) {
+            throw e; // Propagate redirect
+        }
+        return { error: 'Authentication failed: ' + (e as Error).message };
     }
 
     redirect('/dashboard');
