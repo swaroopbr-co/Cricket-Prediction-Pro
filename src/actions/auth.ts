@@ -96,6 +96,12 @@ export async function login(prevState: any, formData: FormData) {
 
         await createSession(user.id, user.role);
 
+        if (user.role === 'ADMIN' || user.role === 'SUB_ADMIN') {
+            redirect('/admin/dashboard');
+        } else {
+            redirect('/dashboard');
+        }
+
     } catch (e) {
         console.error("Login Error:", e);
         if ((e as any)?.message?.includes('NEXT_REDIRECT')) {
@@ -103,6 +109,4 @@ export async function login(prevState: any, formData: FormData) {
         }
         return { error: 'Authentication failed: ' + (e as Error).message };
     }
-
-    redirect('/dashboard');
 }

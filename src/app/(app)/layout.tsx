@@ -12,7 +12,7 @@ export default function AppLayout({
             {/* Sidebar */}
             <aside className="fixed bottom-0 z-50 w-full border-t border-[var(--glass-border)] bg-[var(--surface)] p-2 md:relative md:h-screen md:w-64 md:border-r md:border-t-0 md:p-6">
                 <div className="hidden md:block">
-                    <h1 className="heading-gradient mb-8 text-2xl font-bold">Cricket Pro</h1>
+                    <h1 className="heading-gradient mb-8 text-2xl font-bold">Cricket Predictor Pro</h1>
                 </div>
 
                 <nav className="flex justify-around md:block md:space-y-2">
