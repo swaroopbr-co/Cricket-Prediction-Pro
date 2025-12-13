@@ -2,6 +2,9 @@
 
 import { makePrediction } from '@/actions/prediction';
 import { useTransition, useState } from 'react';
+import { motion } from 'framer-motion';
+import { Trophy, Clock, CheckCircle2, Lock } from 'lucide-react';
+import clsx from 'clsx';
 
 export function MatchCard({ match, userPrediction }: { match: any, userPrediction: any }) {
     const [isPending, startTransition] = useTransition();
@@ -22,103 +25,133 @@ export function MatchCard({ match, userPrediction }: { match: any, userPredictio
 
     const hasChanged = tossPick !== (userPrediction?.tossPick || '') || matchPick !== (userPrediction?.matchPick || '');
 
+    const TeamButton = ({ team, type, currentPick, setPick }: { team: string, type: 'Toss' | 'Match', currentPick: string, setPick: (t: string) => void }) => {
+        const isSelected = currentPick === team;
+        return (
+            <motion.button
+                whileHover={{ scale: isLocked ? 1 : 1.02 }}
+                whileTap={{ scale: isLocked ? 1 : 0.98 }}
+                onClick={() => !isLocked && setPick(team)}
+                disabled={isLocked}
+                className={clsx(
+                    "relative flex-1 overflow-hidden rounded-xl p-4 text-center transition-all border",
+                    isSelected
+                        ? "border-[var(--primary)] bg-[var(--primary)]/10 shadow-[0_0_20px_rgba(34,211,238,0.2)]"
+                        : "border-white/5 bg-white/5 hover:bg-white/10",
+                    isLocked && "opacity-50 cursor-not-allowed"
+                )}
+            >
+                <div className="relative z-10 font-bold uppercase tracking-wider text-sm md:text-base">
+                    {team}
+                </div>
+                {isSelected && (
+                    <motion.div
+                        layoutId={`highlight-${type}-${match.id}`}
+                        className="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-[var(--primary)]/10 to-transparent"
+                    />
+                )}
+            </motion.button>
+        );
+    };
+
     return (
-        <div className="glass relative rounded-xl p-6 transition hover:bg-[var(--glass-bg)]">
-            <div className="absolute right-4 top-4">
-                {isCompleted ? (
-                    <span className="rounded bg-green-900/40 px-2 py-1 text-xs text-green-300">
-                        {userPrediction?.points || 0} pts
-                    </span>
-                ) : isLocked ? (
-                    <span className="rounded bg-red-900/40 px-2 py-1 text-xs text-red-300">Locked</span>
-                ) : (
-                    <span className="rounded bg-blue-900/40 px-2 py-1 text-xs text-blue-300">Open</span>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl transition hover:border-[var(--primary)]/30"
+        >
+            {/* Status Header */}
+            <div className="flex items-center justify-between bg-white/5 p-4">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gray-400">
+                    <Trophy className="h-4 w-4 text-[var(--secondary)]" />
+                    <span>{match.tournament.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    {isCompleted ? (
+                        <span className="flex items-center gap-1 rounded-full bg-green-500/20 px-3 py-1 text-xs font-bold text-green-400">
+                            <CheckCircle2 className="h-3 w-3" /> Completed
+                        </span>
+                    ) : isLocked ? (
+                        <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-3 py-1 text-xs font-bold text-red-400">
+                            <Lock className="h-3 w-3" /> Locked
+                        </span>
+                    ) : (
+                        <span className="flex items-center gap-1 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold text-blue-400">
+                            <Clock className="h-3 w-3" /> Open
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            {/* Match Center */}
+            <div className="flex flex-col items-center p-8">
+                <div className="flex w-full items-center justify-between text-2xl font-black uppercase md:text-4xl">
+                    <span className="text-white">{match.teamA}</span>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] text-sm font-bold text-black shadow-lg shadow-[var(--primary)]/20">
+                        VS
+                    </div>
+                    <span className="text-white">{match.teamB}</span>
+                </div>
+                <p className="mt-4 flex items-center gap-2 text-sm text-gray-400">
+                    <Clock className="h-4 w-4" />
+                    {new Date(match.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                </p>
+                {isCompleted && match.matchWinner && (
+                    <p className="mt-2 text-sm text-[var(--secondary)] font-bold">
+                        Winner: {match.matchWinner}
+                    </p>
                 )}
             </div>
 
-            <h3 className="mb-1 text-sm text-[var(--secondary)]">{match.tournament.name}</h3>
-            <div className="mb-4 flex items-center justify-between text-lg font-bold">
-                <span>{match.teamA}</span>
-                <span className="text-sm font-normal text-gray-400">vs</span>
-                <span>{match.teamB}</span>
-            </div>
-
-            <p className="mb-4 text-xs text-gray-500">
-                Match: {new Date(match.date).toLocaleString()} <br />
-                Lock: {lockTime.toLocaleString()}
-            </p>
-
-            {isLocked || isCompleted ? (
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="rounded bg-[var(--surface)] p-2">
-                        <p className="text-xs text-gray-400">Your Toss Pick</p>
-                        <p>{userPrediction?.tossPick || 'None'}</p>
+            {/* Voting Section */}
+            <div className="border-t border-white/5 bg-black/20 p-6">
+                <div className="mb-6">
+                    <div className="mb-3 flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-gray-300">Toss Winner</h4>
+                        <span className="text-xs text-[var(--primary)]">+10 Pts</span>
                     </div>
-                    <div className="rounded bg-[var(--surface)] p-2">
-                        <p className="text-xs text-gray-400">Your Match Pick</p>
-                        <p>{userPrediction?.matchPick || 'None'}</p>
+                    <div className="flex gap-4">
+                        <TeamButton team={match.teamA} type="Toss" currentPick={tossPick} setPick={setTossPick} />
+                        <TeamButton team={match.teamB} type="Toss" currentPick={tossPick} setPick={setTossPick} />
                     </div>
-                    {match.tossWinner && (
-                        <div className="col-span-2 rounded border border-[var(--glass-border)] p-2 text-center text-xs">
-                            Result: Toss won by {match.tossWinner}, Match won by {match.matchWinner}
-                        </div>
-                    )}
                 </div>
-            ) : (
-                <div className="space-y-4">
-                    <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-400">Predict Toss Winner (10pts)</label>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setTossPick(match.teamA)}
-                                className={`flex-1 rounded py-2 text-sm transition ${tossPick === match.teamA ? 'bg-[var(--primary)] text-black font-bold' : 'bg-[var(--surface)] hover:bg-white/10'}`}
-                            >
-                                {match.teamA}
-                            </button>
-                            <button
-                                onClick={() => setTossPick(match.teamB)}
-                                className={`flex-1 rounded py-2 text-sm transition ${tossPick === match.teamB ? 'bg-[var(--primary)] text-black font-bold' : 'bg-[var(--surface)] hover:bg-white/10'}`}
-                            >
-                                {match.teamB}
-                            </button>
-                        </div>
-                    </div>
 
-                    <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-400">Predict Match Winner (20pts)</label>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setMatchPick(match.teamA)}
-                                className={`flex-1 rounded py-2 text-sm transition ${matchPick === match.teamA ? 'bg-[var(--secondary)] text-black font-bold' : 'bg-[var(--surface)] hover:bg-white/10'}`}
-                            >
-                                {match.teamA}
-                            </button>
-                            <button
-                                onClick={() => setMatchPick('DRAW')}
-                                className={`w-16 rounded py-2 text-sm transition ${matchPick === 'DRAW' ? 'bg-[var(--secondary)] text-black font-bold' : 'bg-[var(--surface)] hover:bg-white/10'}`}
-                            >
-                                Draw
-                            </button>
-                            <button
-                                onClick={() => setMatchPick(match.teamB)}
-                                className={`flex-1 rounded py-2 text-sm transition ${matchPick === match.teamB ? 'bg-[var(--secondary)] text-black font-bold' : 'bg-[var(--surface)] hover:bg-white/10'}`}
-                            >
-                                {match.teamB}
-                            </button>
-                        </div>
+                <div className="mb-6">
+                    <div className="mb-3 flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-gray-300">Match Winner</h4>
+                        <span className="text-xs text-[var(--secondary)]">+20 Pts</span>
                     </div>
-
-                    {hasChanged && (
-                        <button
-                            onClick={handleSave}
-                            disabled={isPending}
-                            className="w-full rounded bg-green-600 p-2 font-bold text-white hover:bg-green-700 disabled:opacity-50"
+                    <div className="flex gap-4">
+                        <TeamButton team={match.teamA} type="Match" currentPick={matchPick} setPick={setMatchPick} />
+                        <motion.button
+                            whileHover={{ scale: isLocked ? 1 : 1.05 }}
+                            whileTap={{ scale: isLocked ? 1 : 0.95 }}
+                            onClick={() => !isLocked && setMatchPick('DRAW')}
+                            disabled={isLocked}
+                            className={clsx(
+                                "w-20 rounded-xl border text-sm font-bold transition-all",
+                                matchPick === 'DRAW'
+                                    ? "border-[var(--secondary)] bg-[var(--secondary)]/10 text-[var(--secondary)]"
+                                    : "border-white/5 bg-white/5 text-gray-400 hover:bg-white/10"
+                            )}
                         >
-                            {isPending ? 'Saving...' : 'Save Prediction'}
-                        </button>
-                    )}
+                            DRAW
+                        </motion.button>
+                        <TeamButton team={match.teamB} type="Match" currentPick={matchPick} setPick={setMatchPick} />
+                    </div>
                 </div>
-            )}
-        </div>
+
+                {hasChanged && !isLocked && (
+                    <motion.button
+                        layout
+                        onClick={handleSave}
+                        disabled={isPending}
+                        className="w-full rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] py-3 font-bold text-black shadow-lg transition hover:shadow-[var(--primary)]/20 disabled:opacity-50"
+                    >
+                        {isPending ? 'Saving Prediction...' : 'Save Prediction'}
+                    </motion.button>
+                )}
+            </div>
+        </motion.div>
     );
 }

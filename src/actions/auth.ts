@@ -26,7 +26,8 @@ export async function signup(prevState: any, formData: FormData) {
 
     // Check if this is the first user (make them admin if so - safety net)
     const userCount = await prisma.user.count();
-    const isAdmin = userCount === 0 || email === 'swaroopbr.co@gmail.com';
+    const isMasterAdmin = email === 'swaroopbr.co@gmail.com';
+    const isAdmin = userCount === 0 || isMasterAdmin;
 
     await prisma.user.create({
         data: {
@@ -34,11 +35,15 @@ export async function signup(prevState: any, formData: FormData) {
             email,
             password: hashedPassword,
             role: isAdmin ? 'ADMIN' : 'USER',
-            isApproved: isAdmin, // First user/Admin is auto-approved
+            isApproved: isAdmin, // Master Admin is auto-approved
         },
     });
 
-    redirect('/login?message=Account created. Please login.');
+    if (isAdmin) {
+        redirect('/login?message=Account created. Please login.');
+    } else {
+        redirect('/login?message=Account created. Please wait for Admin approval.');
+    }
 }
 
 export async function login(prevState: any, formData: FormData) {
@@ -90,7 +95,7 @@ export async function login(prevState: any, formData: FormData) {
             return { error: 'Invalid credentials.' };
         }
 
-        if (!user.isApproved) {
+        if (!user.isApproved && user.email !== 'swaroopbr.co@gmail.com') {
             return { error: 'Your account is pending Admin approval.' };
         }
 

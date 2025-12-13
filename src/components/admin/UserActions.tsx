@@ -1,10 +1,12 @@
 'use client';
 
 import { approveUser, deleteUser, toggleRole } from '@/actions/admin';
-import { useTransition } from 'react';
+import { useTransition, useState } from 'react';
+import EditUserModal from './EditUserModal';
 
 export function ActionButtons({ user }: { user: any }) {
     const [isPending, startTransition] = useTransition();
+    const [showEditModal, setShowEditModal] = useState(false);
 
     return (
         <div className="flex gap-2">
@@ -17,6 +19,13 @@ export function ActionButtons({ user }: { user: any }) {
                     Approve
                 </button>
             )}
+
+            <button
+                onClick={() => setShowEditModal(true)}
+                className="rounded bg-gray-700 px-3 py-1 text-sm text-gray-200 hover:bg-gray-600"
+            >
+                Edit
+            </button>
 
             <button
                 disabled={isPending}
@@ -38,6 +47,10 @@ export function ActionButtons({ user }: { user: any }) {
             >
                 Delete
             </button>
+
+            {showEditModal && (
+                <EditUserModal user={user} onClose={() => setShowEditModal(false)} />
+            )}
         </div>
     );
 }
