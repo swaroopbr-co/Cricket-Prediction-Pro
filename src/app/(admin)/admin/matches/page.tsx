@@ -8,6 +8,8 @@ import { createTournament, createMatch, deleteTournament, deleteMatch, publishTo
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminMatchesPage() {
     const tournaments = await prisma.tournament.findMany({
         include: { matches: true, teams: true },

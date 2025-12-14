@@ -4,6 +4,7 @@ import { MatchesView } from '@/components/user/MatchesView';
 import { TournamentPredictionCard } from '@/components/user/TournamentPredictionCard';
 import { revalidatePath } from 'next/cache';
 
+// No change needed
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
