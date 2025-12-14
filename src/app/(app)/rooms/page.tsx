@@ -3,6 +3,8 @@ import { getSession } from '@/lib/session';
 import Link from 'next/link';
 import { CreateRoomModal } from '@/components/rooms/CreateRoomModal';
 
+export const dynamic = 'force-dynamic';
+
 export default async function RoomsPage() {
     const session = await getSession();
     // Re-use logic: fetch all rooms, mark which ones I've joined

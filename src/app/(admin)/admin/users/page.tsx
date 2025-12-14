@@ -1,7 +1,10 @@
 import { getUsers } from '@/actions/admin';
+import { UserSearch } from '@/components/admin/UserSearch';
 import { ActionButtons } from '@/components/admin/UserActions';
 
-export default async function UsersPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function AdminUsersPage() {
     const allUsers = await getUsers();
 
     const admins = allUsers.filter(u => u.role === 'ADMIN' || u.role === 'SUB_ADMIN');

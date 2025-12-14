@@ -5,11 +5,8 @@ import { LeaderboardFilters } from '@/components/user/LeaderboardFilters';
 
 export const dynamic = 'force-dynamic';
 
-export default async function LeaderboardPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
-    const searchParams = await props.searchParams;
-    const tournamentId = typeof searchParams.tournamentId === 'string' ? searchParams.tournamentId : undefined;
-    const matchId = typeof searchParams.matchId === 'string' ? searchParams.matchId : undefined;
-    const roomId = typeof searchParams.roomId === 'string' ? searchParams.roomId : undefined;
+export default async function LeaderboardPage({ searchParams }: { searchParams: { tournamentId?: string, matchId?: string, roomId?: string } }) {
+    const { tournamentId, matchId, roomId } = searchParams;
 
     const leaderboard = await getLeaderboard({ tournamentId, matchId, roomId });
     const session = await getSession();

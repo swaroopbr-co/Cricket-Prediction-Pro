@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { UserMinus, UserPlus, Check, X } from 'lucide-react';
 import { AdminRoomActions } from '@/components/admin/AdminRoomActions';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminRoomsPage() {
     const rooms = await getRooms();
     const users = await prisma.user.findMany({ orderBy: { username: 'asc' } });

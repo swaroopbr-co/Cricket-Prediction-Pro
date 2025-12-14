@@ -8,10 +8,10 @@ import { RoomMembersList } from '@/components/rooms/RoomMembersList';
 
 export const dynamic = 'force-dynamic';
 
-export default async function RoomDetailsPage(props: { params: Promise<{ id: string }> }) {
-    const params = await props.params;
+export default async function RoomPage({ params }: { params: { id: string } }) {
+    const { id } = params;
     const room = await prisma.room.findUnique({
-        where: { id: params.id },
+        where: { id: id },
         include: {
             members: {
                 include: {

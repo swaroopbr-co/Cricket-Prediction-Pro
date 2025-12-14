@@ -2,6 +2,8 @@ import { createPoll, getPolls, deletePoll } from '@/actions/poll';
 import { prisma } from '@/lib/prisma';
 import { Trash } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPollsPage() {
     const polls = await getPolls(true);
     const tournaments = await prisma.tournament.findMany({ select: { id: true, name: true } });

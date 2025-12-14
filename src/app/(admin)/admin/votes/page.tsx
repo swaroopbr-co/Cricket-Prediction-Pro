@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { VoteFilters } from '@/components/admin/VoteFilters';
 import { formatDateTime } from '@/lib/format';
 
-export default async function VotesPage({ searchParams }: { searchParams: { [key: string]: string | undefined } }) {
+export const dynamic = 'force-dynamic';
+
+export default async function AdminVotesPage({ searchParams }: { searchParams: { search?: string, tournamentId?: string, roomId?: string } }) {
     const filters = {
         search: searchParams.search,
         tournamentId: searchParams.tournamentId,
