@@ -71,21 +71,62 @@ export async function makePrediction(matchId: string, tossPick: string, matchPic
     revalidatePath('/dashboard');
 }
 
-export async function getLeaderboard() {
+export async function getLeaderboard(filter?: { tournamentId?: string, matchId?: string }) {
+    // 1. Filter out Admins
+    const userWhere: any = {
+        role: { notIn: ['ADMIN', 'MASTER_ADMIN'] },
+        isApproved: true
+    };
+
+    // 2. Filter Predictions based on Match/Tournament
+    const predictionsWhere: any = {};
+
+    if (filter?.matchId && filter.matchId !== 'ALL') {
+        predictionsWhere.matchId = filter.matchId;
+    } else if (filter?.tournamentId && filter.tournamentId !== 'ALL') {
+        predictionsWhere.match = { tournamentId: filter.tournamentId };
+    }
+
     const users = await prisma.user.findMany({
+        where: userWhere,
         select: {
             username: true,
+            avatar: true,
             predictions: {
+                where: predictionsWhere,
                 select: { points: true }
             }
         }
     });
 
-    // Simple aggregate
+    // 3. Aggregate Points
     const leaderboard = users.map((u: any) => ({
         username: u.username,
+        avatar: u.avatar,
         totalPoints: u.predictions.reduce((acc: number, p: any) => acc + p.points, 0)
-    })).sort((a: any, b: any) => b.totalPoints - a.totalPoints);
+    }))
+        .filter((u: any) => u.totalPoints >= 0) // Optional: keep everyone
+        .sort((a: any, b: any) => b.totalPoints - a.totalPoints);
 
     return leaderboard;
+}
+
+export async function getMyPredictions() {
+    const session = await verifyUser();
+
+    return await prisma.prediction.findMany({
+        where: { userId: session.userId },
+        include: {
+            match: {
+                include: {
+                    tournament: true
+                }
+            }
+        },
+        orderBy: {
+            match: {
+                date: 'desc'
+            }
+        }
+    });
 }

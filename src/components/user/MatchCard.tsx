@@ -1,157 +1,88 @@
 'use client';
 
-import { makePrediction } from '@/actions/prediction';
-import { useTransition, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Trophy, Clock, CheckCircle2, Lock } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Clock, CheckCircle2, Lock, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
+import { PredictionModal } from './PredictionModal';
 
 export function MatchCard({ match, userPrediction }: { match: any, userPrediction: any }) {
-    const [isPending, startTransition] = useTransition();
-    const [tossPick, setTossPick] = useState(userPrediction?.tossPick || '');
-    const [matchPick, setMatchPick] = useState(userPrediction?.matchPick || '');
+    const [showModal, setShowModal] = useState(false);
 
-    // Lock logic: 2.5h before match
-    const lockTime = new Date(new Date(match.date).getTime() - (2.5 * 60 * 60 * 1000));
-    const isLocked = new Date() > lockTime;
     const isCompleted = match.status === 'COMPLETED';
+    const isLive = match.status === 'LIVE';
 
-    const handleSave = () => {
-        startTransition(() => {
-            makePrediction(match.id, tossPick, matchPick)
-                .catch(err => alert(err.message));
-        });
-    };
-
-    const hasChanged = tossPick !== (userPrediction?.tossPick || '') || matchPick !== (userPrediction?.matchPick || '');
-
-    const TeamButton = ({ team, type, currentPick, setPick }: { team: string, type: 'Toss' | 'Match', currentPick: string, setPick: (t: string) => void }) => {
-        const isSelected = currentPick === team;
-        return (
-            <motion.button
-                whileHover={{ scale: isLocked ? 1 : 1.02 }}
-                whileTap={{ scale: isLocked ? 1 : 0.98 }}
-                onClick={() => !isLocked && setPick(team)}
-                disabled={isLocked}
-                className={clsx(
-                    "relative flex-1 overflow-hidden rounded-xl p-4 text-center transition-all border",
-                    isSelected
-                        ? "border-[var(--primary)] bg-[var(--primary)]/10 shadow-[0_0_20px_rgba(34,211,238,0.2)]"
-                        : "border-white/5 bg-white/5 hover:bg-white/10",
-                    isLocked && "opacity-50 cursor-not-allowed"
-                )}
-            >
-                <div className="relative z-10 font-bold uppercase tracking-wider text-sm md:text-base">
-                    {team}
-                </div>
-                {isSelected && (
-                    <motion.div
-                        layoutId={`highlight-${type}-${match.id}`}
-                        className="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-[var(--primary)]/10 to-transparent"
-                    />
-                )}
-            </motion.button>
-        );
-    };
+    // Check if user has predicted
+    const hasPredicted = userPrediction?.matchPick || userPrediction?.tossPick;
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl transition hover:border-[var(--primary)]/30"
-        >
-            {/* Status Header */}
-            <div className="flex items-center justify-between bg-white/5 p-4">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gray-400">
-                    <Trophy className="h-4 w-4 text-[var(--secondary)]" />
-                    <span>{match.tournament.name}</span>
+        <>
+            <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowModal(true)}
+                className="group cursor-pointer relative overflow-hidden rounded-2xl border border-white/5 bg-[#1a1b1f] hover:border-[var(--primary)]/50 hover:bg-[#1f2024] transition-all shadow-lg"
+            >
+                {/* Minimal Header */}
+                <div className="flex items-center justify-between px-4 py-3 bg-white/5 border-b border-white/5">
+                    <span className="text-[10px] font-bold tracking-widest uppercase text-gray-500">{match.tournament.name}</span>
+                    <span className={clsx(
+                        "text-[10px] font-bold px-2 py-0.5 rounded-full",
+                        isLive ? "bg-red-500 text-white animate-pulse" :
+                            isCompleted ? "bg-green-500/20 text-green-400" : "bg-blue-500/20 text-blue-400"
+                    )}>
+                        {match.status}
+                    </span>
                 </div>
-                <div className="flex items-center gap-2">
-                    {isCompleted ? (
-                        <span className="flex items-center gap-1 rounded-full bg-green-500/20 px-3 py-1 text-xs font-bold text-green-400">
-                            <CheckCircle2 className="h-3 w-3" /> Completed
-                        </span>
-                    ) : isLocked ? (
-                        <span className="flex items-center gap-1 rounded-full bg-red-500/20 px-3 py-1 text-xs font-bold text-red-400">
-                            <Lock className="h-3 w-3" /> Locked
+
+                {/* Teams Layout */}
+                <div className="p-6 flex items-center justify-between relative z-10">
+                    <div className="flex-1 text-center">
+                        <span className="block text-xl md:text-2xl font-black text-white">{match.teamA}</span>
+                    </div>
+
+                    <div className="px-4 flex flex-col items-center">
+                        <span className="text-xs font-bold text-gray-600 mb-1">VS</span>
+                        <div className="h-8 w-1 bg-white/5 rounded-full"></div>
+                    </div>
+
+                    <div className="flex-1 text-center">
+                        <span className="block text-xl md:text-2xl font-black text-white">{match.teamB}</span>
+                    </div>
+                </div>
+
+                {/* Footer / Call to Action */}
+                <div className="px-4 py-3 bg-black/20 flex items-center justify-between text-xs text-gray-400">
+                    <span className="flex items-center gap-1">
+                        <Clock size={12} />
+                        {new Date(match.date).toLocaleDateString()}
+                    </span>
+
+                    {hasPredicted ? (
+                        <span className="flex items-center gap-1 text-[var(--primary)] font-bold">
+                            <CheckCircle2 size={12} />
+                            Predicted
                         </span>
                     ) : (
-                        <span className="flex items-center gap-1 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold text-blue-400">
-                            <Clock className="h-3 w-3" /> Open
+                        <span className="group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                            Predict Now <ChevronRight size={12} />
                         </span>
                     )}
                 </div>
-            </div>
 
-            {/* Match Center */}
-            <div className="flex flex-col items-center p-8">
-                <div className="flex w-full items-center justify-between text-2xl font-black uppercase md:text-4xl">
-                    <span className="text-white">{match.teamA}</span>
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] text-sm font-bold text-black shadow-lg shadow-[var(--primary)]/20">
-                        VS
-                    </div>
-                    <span className="text-white">{match.teamB}</span>
-                </div>
-                <p className="mt-4 flex items-center gap-2 text-sm text-gray-400">
-                    <Clock className="h-4 w-4" />
-                    {new Date(match.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                </p>
-                {isCompleted && match.matchWinner && (
-                    <p className="mt-2 text-sm text-[var(--secondary)] font-bold">
-                        Winner: {match.matchWinner}
-                    </p>
+                {/* Background Glow */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)]/5 to-[var(--secondary)]/5 opacity-0 group-hover:opacity-100 transition-opacity z-0 pointer-events-none" />
+            </motion.div>
+
+            <AnimatePresence>
+                {showModal && (
+                    <PredictionModal
+                        match={match}
+                        userPrediction={userPrediction}
+                        onClose={() => setShowModal(false)}
+                    />
                 )}
-            </div>
-
-            {/* Voting Section */}
-            <div className="border-t border-white/5 bg-black/20 p-6">
-                <div className="mb-6">
-                    <div className="mb-3 flex items-center justify-between">
-                        <h4 className="text-sm font-bold text-gray-300">Toss Winner</h4>
-                        <span className="text-xs text-[var(--primary)]">+10 Pts</span>
-                    </div>
-                    <div className="flex gap-4">
-                        <TeamButton team={match.teamA} type="Toss" currentPick={tossPick} setPick={setTossPick} />
-                        <TeamButton team={match.teamB} type="Toss" currentPick={tossPick} setPick={setTossPick} />
-                    </div>
-                </div>
-
-                <div className="mb-6">
-                    <div className="mb-3 flex items-center justify-between">
-                        <h4 className="text-sm font-bold text-gray-300">Match Winner</h4>
-                        <span className="text-xs text-[var(--secondary)]">+20 Pts</span>
-                    </div>
-                    <div className="flex gap-4">
-                        <TeamButton team={match.teamA} type="Match" currentPick={matchPick} setPick={setMatchPick} />
-                        <motion.button
-                            whileHover={{ scale: isLocked ? 1 : 1.05 }}
-                            whileTap={{ scale: isLocked ? 1 : 0.95 }}
-                            onClick={() => !isLocked && setMatchPick('DRAW')}
-                            disabled={isLocked}
-                            className={clsx(
-                                "w-20 rounded-xl border text-sm font-bold transition-all",
-                                matchPick === 'DRAW'
-                                    ? "border-[var(--secondary)] bg-[var(--secondary)]/10 text-[var(--secondary)]"
-                                    : "border-white/5 bg-white/5 text-gray-400 hover:bg-white/10"
-                            )}
-                        >
-                            DRAW
-                        </motion.button>
-                        <TeamButton team={match.teamB} type="Match" currentPick={matchPick} setPick={setMatchPick} />
-                    </div>
-                </div>
-
-                {hasChanged && !isLocked && (
-                    <motion.button
-                        layout
-                        onClick={handleSave}
-                        disabled={isPending}
-                        className="w-full rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] py-3 font-bold text-black shadow-lg transition hover:shadow-[var(--primary)]/20 disabled:opacity-50"
-                    >
-                        {isPending ? 'Saving Prediction...' : 'Save Prediction'}
-                    </motion.button>
-                )}
-            </div>
-        </motion.div>
+            </AnimatePresence>
+        </>
     );
 }

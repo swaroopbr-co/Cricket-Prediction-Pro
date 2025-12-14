@@ -13,6 +13,39 @@ async function verifyAdmin() {
     }
 }
 
+export async function createTournament(name: string, type: string, format: string, startDate: string, endDate: string) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMIN') throw new Error("Unauthorized");
+
+    await prisma.tournament.create({
+        data: {
+            name,
+            type, // T20, ODI, TEST
+            format, // LEAGUE, BILATERAL
+            startDate: new Date(startDate),
+            endDate: new Date(endDate)
+        }
+    });
+    revalidatePath('/admin/matches');
+}
+
+export async function createMatch(tournamentId: string, number: number, teamA: string, teamB: string, date: string) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMIN') throw new Error("Unauthorized");
+
+    await prisma.match.create({
+        data: {
+            tournamentId,
+            number,
+            teamA,
+            teamB,
+            date: new Date(date),
+            status: 'SCHEDULED'
+        }
+    });
+    revalidatePath('/admin/matches');
+}
+
 export async function getUsers() {
     await verifyAdmin();
     return await prisma.user.findMany({
@@ -88,7 +121,7 @@ export async function updateUserCredentials(userId: string, newUsername?: string
     }
 }
 
-export async function createRoom(name: string) {
+export async function createRoom(name: string, initialMemberIds: string[] = []) {
     const session = await getSession();
     if (!session || (session.role !== 'ADMIN' && session.role !== 'SUB_ADMIN')) {
         throw new Error("Unauthorized");
@@ -98,12 +131,18 @@ export async function createRoom(name: string) {
         return { error: "Room name is required" };
     }
 
+    // Always include admin as member? Yes.
+    const memberData = [
+        { userId: session.userId },
+        ...initialMemberIds.filter(id => id !== session.userId).map(userId => ({ userId }))
+    ];
+
     await prisma.room.create({
         data: {
             name,
             adminId: session.userId,
             members: {
-                create: { userId: session.userId }
+                create: memberData
             }
         }
     });
@@ -118,7 +157,84 @@ export async function getRooms() {
     // For admins, return all rooms. For users, maybe only theirs? 
     // For now, adhering to Admin Management context.
     return await prisma.room.findMany({
-        include: { _count: { select: { members: true } } },
+        include: {
+            _count: { select: { members: true } },
+            members: { include: { user: true } } // Fetch members for management UI
+        },
         orderBy: { createdAt: 'desc' }
     });
 }
+
+export async function addMemberToRoom(roomId: string, userId: string) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMIN') throw new Error("Unauthorized");
+
+    try {
+        await prisma.roomMember.create({
+            data: { roomId, userId }
+        });
+        revalidatePath('/admin/rooms');
+        return { success: true };
+    } catch (e: any) { // Type as any to safely access code
+        if (e.code === 'P2002') return { error: "User already in room" };
+        throw e;
+    }
+}
+
+// ... existing actions ...
+
+export async function removeMemberFromRoom(roomId: string, userId: string) {
+    const session = await getSession();
+    if (!session || session.role !== 'ADMIN') throw new Error("Unauthorized");
+
+    await prisma.roomMember.deleteMany({
+        where: { roomId, userId }
+    });
+    revalidatePath('/admin/rooms');
+}
+
+// === Phase 6: Admin Controls ===
+
+export async function deleteTournament(id: string) {
+    await verifyAdmin();
+    // Cascade delete matches? Prisma usually handles this if configured, or we do manually.
+    // Ideally, we should delete matches first.
+    await prisma.match.deleteMany({ where: { tournamentId: id } });
+    await prisma.tournament.delete({ where: { id } });
+    revalidatePath('/admin/matches');
+}
+
+export async function deleteMatch(id: string) {
+    await verifyAdmin();
+    await prisma.match.delete({ where: { id } });
+    revalidatePath('/admin/matches');
+}
+
+export async function updateMatchStatus(id: string, status: string, winner?: string) {
+    await verifyAdmin();
+    await prisma.match.update({
+        where: { id },
+        data: {
+            status,
+            matchWinner: winner,
+            // If completed, maybe update points? (Handled separately usually, but for now simple update)
+        }
+    });
+    revalidatePath('/admin/matches');
+}
+
+export async function publishTournamentWinner(id: string, winner: string) {
+    await verifyAdmin();
+    await prisma.tournament.update({
+        where: { id },
+        data: {
+            winner,
+            locked: true // Lock creating new matches?
+        }
+    });
+
+    // TODO: Calculate Points for Tournament Winner Predictions
+    // For now, just setting the winner.
+    revalidatePath('/admin/matches');
+}
+
