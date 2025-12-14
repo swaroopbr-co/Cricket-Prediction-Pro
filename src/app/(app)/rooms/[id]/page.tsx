@@ -2,6 +2,9 @@ import { prisma } from '@/lib/prisma';
 import { getUpcomingMatches } from '@/actions/prediction';
 import { MatchesView } from '@/components/user/MatchesView';
 import { notFound } from 'next/navigation';
+import { getSession } from '@/lib/session';
+import { EditRoomModal } from '@/components/rooms/EditRoomModal';
+import { RoomMembersList } from '@/components/rooms/RoomMembersList';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,8 +31,34 @@ export default async function RoomDetailsPage(props: { params: Promise<{ id: str
 
     if (!room) return notFound();
 
+    const session = await getSession();
+    const isAdmin = room.adminId === session?.userId;
+
+    const currentMember = room.members.find(m => m.userId === session?.userId);
+    const isPending = currentMember && !currentMember.isApproved;
+
+    // Pending Members (for Admin)
+    const pendingMembers = room.members.filter(m => !m.isApproved);
+
+    // If I am pending AND not admin (admin shouldn't be pending but safe check), show waiting screen
+    if (isPending && !isAdmin) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                <div className="text-4xl">⏳</div>
+                <h1 className="text-2xl font-bold">Membership Pending</h1>
+                <p className="text-gray-400 max-w-md">
+                    Your request to join <strong>{room.name}</strong> has been sent.
+                    Please wait for the room admin to approve your request.
+                </p>
+            </div>
+        );
+    }
+
+    // Filters for Leaderboard (only approved members)
+    const approvedMembers = room.members.filter(m => m.isApproved);
+
     // Calculate Room Leaderboard
-    const leaderboard = room.members
+    const leaderboard = approvedMembers
         .map(m => ({
             username: m.user.username,
             avatar: m.user.avatar,
@@ -45,17 +74,14 @@ export default async function RoomDetailsPage(props: { params: Promise<{ id: str
             <div className="flex items-center justify-between border-b border-white/5 pb-6">
                 <div>
                     <h1 className="heading-gradient text-3xl font-bold">{room.name}</h1>
-                    <p className="text-gray-400 mt-2">{room.members.length} Members</p>
+                    <div className="flex items-center gap-3 mt-2">
+                        <p className="text-gray-400">{room.members.length} Members</p>
+                        {isAdmin && <EditRoomModal room={room} />}
+                    </div>
                 </div>
             </div>
 
-            {/* Room Leaderboard Section */}
             <section>
-                <div className="flex items-center gap-3 mb-6">
-                    <span className="text-2xl">🏆</span>
-                    <h2 className="text-xl font-bold text-white">Room Leaderboard</h2>
-                </div>
-
                 <div className="glass overflow-hidden rounded-xl">
                     <table className="w-full text-left text-sm text-[var(--foreground)]">
                         <thead className="bg-[var(--glass-bg)] text-xs uppercase text-[var(--secondary)]">

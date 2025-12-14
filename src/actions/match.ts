@@ -17,9 +17,23 @@ export async function createTournament(formData: FormData) {
     const type = formData.get('type') as string; // T20, ODI, TEST
     const startDate = new Date(formData.get('startDate') as string);
     const endDate = new Date(formData.get('endDate') as string);
+    const teamsInput = formData.get('teams') as string;
+
+    const teamNames = teamsInput ? teamsInput.split(',').map(t => t.trim()).filter(Boolean) : [];
 
     await prisma.tournament.create({
-        data: { name, type, startDate, endDate },
+        data: {
+            name,
+            type,
+            startDate,
+            endDate,
+            teams: {
+                connectOrCreate: teamNames.map(name => ({
+                    where: { name },
+                    create: { name }
+                }))
+            }
+        },
     });
     revalidatePath('/admin/matches');
 }
@@ -29,10 +43,12 @@ export async function createMatch(tournamentId: string, formData: FormData) {
     const teamA = formData.get('teamA') as string;
     const teamB = formData.get('teamB') as string;
     const date = new Date(formData.get('date') as string);
+    const number = parseInt(formData.get('number') as string) || 0;
 
     await prisma.match.create({
         data: {
             tournamentId,
+            number,
             teamA,
             teamB,
             date,
@@ -64,7 +80,10 @@ export async function getTournaments() {
     // For admin list, we verify.
     await verifyAdmin();
     return await prisma.tournament.findMany({
-        include: { matches: { orderBy: { date: 'asc' } } },
+        include: {
+            matches: { orderBy: { date: 'asc' } },
+            teams: { orderBy: { name: 'asc' } }
+        },
         orderBy: { startDate: 'desc' },
     });
 }

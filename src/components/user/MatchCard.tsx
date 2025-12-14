@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, CheckCircle2, Lock, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 import { PredictionModal } from './PredictionModal';
+import { CountdownTimer } from '../ui/CountdownTimer';
 
 export function MatchCard({ match, userPrediction }: { match: any, userPrediction: any }) {
     const [showModal, setShowModal] = useState(false);
@@ -55,7 +56,12 @@ export function MatchCard({ match, userPrediction }: { match: any, userPredictio
                 <div className="px-4 py-3 bg-black/20 flex items-center justify-between text-xs text-gray-400">
                     <span className="flex items-center gap-1">
                         <Clock size={12} />
-                        {new Date(match.date).toLocaleDateString()}
+                        {isCompleted ? (
+                            <span>{new Date(match.date).toLocaleDateString()}</span>
+                        ) : (
+                            // Target date for voting close is 1.5 hours before match time
+                            <CountdownTimer targetDate={new Date(new Date(match.date).getTime() - 1.5 * 60 * 60 * 1000)} />
+                        )}
                     </span>
 
                     {hasPredicted ? (

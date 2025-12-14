@@ -1,12 +1,14 @@
-import { getUpcomingMatches } from '@/actions/prediction';
+import { getUpcomingMatches, getActiveTournamentsWithUserPrediction } from '@/actions/prediction';
 import { getPolls, votePoll } from '@/actions/poll';
 import { MatchesView } from '@/components/user/MatchesView';
+import { TournamentPredictionCard } from '@/components/user/TournamentPredictionCard';
 import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
     const matches = await getUpcomingMatches();
+    const activeTournaments = await getActiveTournamentsWithUserPrediction();
     const polls = await getPolls(false); // Valid user-side call
 
     return (
@@ -22,6 +24,19 @@ export default async function DashboardPage() {
                     {/* TODO: Fetch total points dynamically */}
                 </div>
             </div>
+
+            {/* Active Tournaments Voting */}
+            {activeTournaments.length > 0 && (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+                    {activeTournaments.map((t: any) => (
+                        <TournamentPredictionCard
+                            key={t.id}
+                            tournament={t}
+                            userPrediction={t.predictions[0]}
+                        />
+                    ))}
+                </div>
+            )}
 
             {/* Client-side Match Filtering & Display */}
             <MatchesView matches={matches} />

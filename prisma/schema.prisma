@@ -41,6 +41,15 @@ model Tournament {
   matches   Match[]
   predictions Prediction[]
   polls     Poll[]
+  teams     Team[]
+}
+
+model Team {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  shortName   String?
+  logo        String?     // URL or Path
+  tournaments Tournament[]
 }
 
 model Match {
@@ -66,6 +75,7 @@ model Room {
   admin     User         @relation("RoomOwner", fields: [adminId], references: [id])
   members   RoomMember[]
   createdAt DateTime     @default(now())
+  type      String       @default("PUBLIC") // PUBLIC, PRIVATE, REQUEST
 }
 
 model RoomMember {
@@ -144,4 +154,5 @@ model Notification {
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+  metadata  String?  // JSON string for extra data (e.g. { matchId, tournamentId, requesterId })
 }

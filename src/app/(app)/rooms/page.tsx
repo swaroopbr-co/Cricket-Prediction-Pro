@@ -1,6 +1,7 @@
 import { getRooms, joinRoom } from '@/actions/room';
 import { getSession } from '@/lib/session';
 import Link from 'next/link';
+import { CreateRoomModal } from '@/components/rooms/CreateRoomModal';
 
 export default async function RoomsPage() {
     const session = await getSession();
@@ -18,7 +19,9 @@ export default async function RoomsPage() {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="heading-gradient text-2xl font-bold">Groups & Rooms</h1>
-                {(session as any)?.role === 'ADMIN' && <button className="btn-primary">+ Create Room</button>}
+                {((session as any)?.role === 'ADMIN' || (session as any)?.role === 'SUB_ADMIN') && (
+                    <CreateRoomModal />
+                )}
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -29,8 +32,10 @@ export default async function RoomsPage() {
                                 <Link href={`/rooms/${room.id}`} className="hover:text-[var(--primary)] transition-colors">
                                     <h3 className="text-xl font-bold">{room.name}</h3>
                                 </Link>
-                                {room.isMember ? (
+                                {room.isMember && !room.isPending ? (
                                     <span className="text-xs bg-green-900/40 text-green-300 px-2 py-1 rounded">Joined</span>
+                                ) : room.isMember && room.isPending ? (
+                                    <span className="text-xs bg-yellow-900/40 text-yellow-300 px-2 py-1 rounded">Pending</span>
                                 ) : (
                                     <form action={handleJoin}>
                                         <input type="hidden" name="roomId" value={room.id} />

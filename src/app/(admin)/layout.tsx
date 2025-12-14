@@ -38,6 +38,12 @@ export default function AdminLayout({
                     >
                         Rooms
                     </Link>
+                    <Link
+                        href="/admin/votes"
+                        className="block rounded-lg p-3 text-[var(--foreground)] hover:bg-[var(--glass-bg)]"
+                    >
+                        Vote Monitor
+                    </Link>
                 </nav>
 
                 <div className="mt-12">

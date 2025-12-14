@@ -1,10 +1,12 @@
-import { getAdminStats, getUsers, getRooms } from '@/actions/admin';
+import { getAdminStats, getUsers, getRooms, getRevoteRequests } from '@/actions/admin';
 import { sendNotification } from '@/actions/notification';
+import RevoteRequests from '@/components/admin/RevoteRequests';
 
 export default async function AdminDashboard() {
     const stats = await getAdminStats();
     const users = await getUsers();
     const rooms = await getRooms();
+    const revoteRequests = await getRevoteRequests();
 
     async function handleSendNotification(formData: FormData) {
         'use server';
@@ -34,6 +36,11 @@ export default async function AdminDashboard() {
                     <h3 className="text-gray-400 text-sm mb-1">Active Rooms</h3>
                     <p className="text-3xl font-bold text-[var(--secondary)]">{stats.totalRooms}</p>
                 </div>
+            </div>
+
+            {/* Revote Requests */}
+            <div className="mb-8">
+                <RevoteRequests requests={revoteRequests} />
             </div>
 
             {/* Notification Center */}

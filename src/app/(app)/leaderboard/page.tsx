@@ -1,5 +1,6 @@
 import { getLeaderboard } from '@/actions/prediction';
-import { prisma } from '@/lib/prisma'; // Direct prisma access strictly for static data like Tournaments/Matches list
+import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 import { LeaderboardFilters } from '@/components/user/LeaderboardFilters';
 
 export const dynamic = 'force-dynamic';
@@ -8,8 +9,10 @@ export default async function LeaderboardPage(props: { searchParams: Promise<{ [
     const searchParams = await props.searchParams;
     const tournamentId = typeof searchParams.tournamentId === 'string' ? searchParams.tournamentId : undefined;
     const matchId = typeof searchParams.matchId === 'string' ? searchParams.matchId : undefined;
+    const roomId = typeof searchParams.roomId === 'string' ? searchParams.roomId : undefined;
 
-    const leaderboard = await getLeaderboard({ tournamentId, matchId });
+    const leaderboard = await getLeaderboard({ tournamentId, matchId, roomId });
+    const session = await getSession();
 
     // Fetch data for filters
     const tournaments = await prisma.tournament.findMany({ select: { id: true, name: true } });
@@ -18,11 +21,17 @@ export default async function LeaderboardPage(props: { searchParams: Promise<{ [
         orderBy: { date: 'desc' }
     });
 
+    // Fetch user's joined rooms
+    const userRooms = session ? await prisma.room.findMany({
+        where: { members: { some: { userId: session.userId, isApproved: true } } },
+        select: { id: true, name: true }
+    }) : [];
+
     return (
         <div>
             <h1 className="heading-gradient mb-6 text-2xl font-bold">Leaderboard</h1>
 
-            <LeaderboardFilters tournaments={tournaments} matches={matches} />
+            <LeaderboardFilters tournaments={tournaments} matches={matches} rooms={userRooms} />
 
             <div className="glass overflow-hidden rounded-xl">
                 <table className="w-full text-left text-sm text-[var(--foreground)]">
